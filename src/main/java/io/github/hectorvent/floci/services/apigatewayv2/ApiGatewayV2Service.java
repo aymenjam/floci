@@ -783,6 +783,19 @@ public class ApiGatewayV2Service {
         return integration;
     }
 
+    /**
+     * Sets the connection type and id exactly as given, null included. UpdateIntegration keeps a
+     * field the request leaves out, so it cannot remove a connection that CloudFormation dropped.
+     */
+    public Integration replaceIntegrationConnection(String region, String apiId, String integrationId,
+                                                    String connectionType, String connectionId) {
+        Integration integration = getIntegration(region, apiId, integrationId);
+        integration.setConnectionType(connectionType);
+        integration.setConnectionId(connectionId);
+        integrationStore.put(integrationKey(region, apiId, integrationId), integration);
+        return integration;
+    }
+
     // ──────────────────────────── Stage CRUD ────────────────────────────
 
     public Stage createStage(String region, String apiId, Map<String, Object> request) {
