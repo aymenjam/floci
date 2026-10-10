@@ -909,6 +909,33 @@ class CloudFrontCfnProvisionerTest {
     }
 
     @Test
+    void functionWithoutCommentIsAValidationError() throws Exception {
+        StackResource r = resource(FUNCTION);
+
+        AwsException e = assertThrows(AwsException.class, () -> provisioner.provision(r, json("""
+                {"Name": "my-function", "FunctionCode": "code", "FunctionConfig": {"Runtime": "cloudfront-js-2.0"}}
+                """), distributionCtx(null)));
+
+        assertEquals("ValidationError", e.getErrorCode());
+        assertEquals(FUNCTION + " requires FunctionConfig.Comment", e.getMessage());
+        verify(cloudFront, never()).createFunction(any());
+    }
+
+    @Test
+    void functionWithAnEmptyCommentIsCreated() throws Exception {
+        when(cloudFront.arn("function/my-function")).thenReturn(FUNCTION_ARN);
+        when(cloudFront.createFunction(any())).thenReturn(function("my-function", ETAG));
+        StackResource r = resource(FUNCTION);
+
+        provisioner.provision(r, json("""
+                {"Name": "my-function", "FunctionCode": "code",
+                 "FunctionConfig": {"Comment": "", "Runtime": "cloudfront-js-2.0"}}
+                """), distributionCtx(null));
+
+        assertEquals(FUNCTION_ARN, r.getPhysicalId());
+    }
+
+    @Test
     void functionWithAnAutoPublishThatIsNotABooleanIsAValidationError() throws Exception {
         StackResource r = resource(FUNCTION);
 

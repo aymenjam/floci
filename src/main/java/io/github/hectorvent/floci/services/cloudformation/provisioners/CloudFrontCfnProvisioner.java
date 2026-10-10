@@ -298,6 +298,9 @@ public class CloudFrontCfnProvisioner implements CfnResourceProvisioner {
         if (runtime == null || runtime.isBlank()) {
             throw new AwsException("ValidationError", FUNCTION + " requires FunctionConfig.Runtime", 400);
         }
+        if (!config.hasNonNull("Comment")) {
+            throw new AwsException("ValidationError", FUNCTION + " requires FunctionConfig.Comment", 400);
+        }
         boolean autoPublish = autoPublish(props, ctx);
         Map<String, String> tags = ctx.resolveTags(props, "Tags");
         CloudFrontFunction fn = new CloudFrontFunction();
@@ -338,7 +341,7 @@ public class CloudFrontCfnProvisioner implements CfnResourceProvisioner {
 
     /** False when absent. Any value other than true or false is rejected before the service is called. */
     private static boolean autoPublish(JsonNode props, ProvisionContext ctx) {
-        String value = resolvedText("AutoPublish", props, ctx);
+        String value = ctx.resolveOptional(props, "AutoPublish");
         if (value == null || "false".equalsIgnoreCase(value)) {
             return false;
         }
@@ -439,14 +442,8 @@ public class CloudFrontCfnProvisioner implements CfnResourceProvisioner {
         return list;
     }
 
-    private static String resolvedText(String name, JsonNode props, ProvisionContext ctx) {
-        JsonNode raw = props == null ? null : props.get(name);
-        JsonNode resolved = raw == null || raw.isNull() ? null : ctx.engine().resolveNode(raw);
-        return resolved == null || resolved.isNull() || resolved.isContainerNode() ? null : resolved.asText();
-    }
-
     private static String requireText(String type, String name, JsonNode props, ProvisionContext ctx) {
-        String value = resolvedText(name, props, ctx);
+        String value = ctx.resolveOptional(props, name);
         if (value == null || value.isBlank()) {
             throw new AwsException("ValidationError", type + " requires " + name, 400);
         }
